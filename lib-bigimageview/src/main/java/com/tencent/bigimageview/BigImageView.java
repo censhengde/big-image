@@ -12,6 +12,7 @@ import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.widget.Scroller;
 
 import androidx.annotation.Nullable;
@@ -48,16 +49,8 @@ public class BigImageView extends View {
 
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-            mVisiableRect.offset(0, (int) distanceY);
-            /*向下滑动*/
-            if (mVisiableRect.bottom > mImageHeight) {
-                mVisiableRect.bottom = mImageHeight;
-                mVisiableRect.top =mVisiableRect.bottom-mVisiableHeight;
-            }
-            /*向上滑动*/
-            if (mVisiableRect.top < 0) {
-                mVisiableRect.top = 0;
-                mVisiableRect.bottom = mVisiableHeight;
+            if (distanceY >= mTouchSlop) {
+                mScroller.startScroll(0, (int) e1.getY(), 0, (int) distanceY);
             }
             invalidate();
             return false;
@@ -80,8 +73,18 @@ public class BigImageView extends View {
     public void computeScroll() {
         if (mScroller.computeScrollOffset()) {
             mVisiableRect.top = mScroller.getCurrY();
-            mVisiableRect.bottom = mVisiableRect.top + (int) (getMeasuredHeight() / mScale);
-            invalidate();
+            mVisiableRect.bottom = mVisiableRect.top + mVisiableHeight;
+            /*向下滑动*/
+            if (mVisiableRect.bottom > mImageHeight) {
+                mVisiableRect.bottom = mImageHeight;
+                mVisiableRect.top = mVisiableRect.bottom - mVisiableHeight;
+            }
+            /*向上滑动*/
+            if (mVisiableRect.top < 0) {
+                mVisiableRect.top = 0;
+                mVisiableRect.bottom = mVisiableHeight;
+            }
+            postInvalidate();
         }
     }
 
@@ -94,6 +97,7 @@ public class BigImageView extends View {
     private Matrix mScaleMatrix;
     private int mImageWidth, mImageHeight;
     private int mVisiableHeight;
+    private final int mTouchSlop;
 
     public BigImageView(Context context) {
         this(context, null);
@@ -108,6 +112,7 @@ public class BigImageView extends View {
         mGestureDetector = new GestureDetector(getContext(), mOnGestureListener);
         mScroller = new Scroller(context);
         mScaleMatrix = new Matrix();
+        mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
         this.setOnTouchListener(new OnTouchListener() {
             @SuppressLint("ClickableViewAccessibility")
             @Override
